@@ -1,6 +1,6 @@
 # arch Linux安装指南
 
-> 本文配图尚未完成,~~自己装的时候没想着要写教程,~~等我帮别人装完linux再配图吧()
+> 本文配图尚未完成,自己装的时候没想着要写教程,等我帮别人装完linux再配图吧()
 
 这是一篇基于我的安装经验所写的用`EFI`引导的电脑安装`Arch Linux`（双系统）的中文简明教程，首先感谢鲨鱼姐姐的这篇<a href="https://github.com/JunkFood02/Arch-Linux-Installation-Guide">教程</a>。~~（感觉完全在照搬）~~
 
@@ -43,7 +43,7 @@
 
 2. 右击想要删除的分区，选择删除卷（注意提前备份其中的有用数据）
 
-- 空闲的磁盘（新磁盘）：无需进行任何操作
+- 空闲的磁盘（新磁盘）：无需进行任何操作。
 
 
 
@@ -306,3 +306,424 @@ rm -rf /mnt/etc/fstab
 
 #### Chroot
 
+chroot(即change root),相当于进入新安装的linux系统,执行这一步之后,之后的操作都相当于在新装的系统中进行.
+
+```
+arch-chroot /mnt
+```
+
+> 顺带一提，如果以后系统出现了问题，只要插入任意一个安装有 Arch Linux 镜像的 U 盘并启动，将我们的系统根分区挂载到 `/mnt` 下、EFI 系统分区挂载到 `/mnt/boot` 下，再通过这条命令就可以进入我们的系统进行修复操作。~~(救不了的话重装最快)~~
+
+#### 开启pacman并行下载
+
+使用vim打开pacman,开启怕pacman的并行下载功能
+
+```
+vim /etc/pacman.conf
+```
+
+然后找到`ParallelDownloads = 5`这一行将其取消注释[^1],`5`可以调节为你想要的数值
+
+> 盲目多开并不会提高效率,默认5即可.~~网速够快当我没说~~
+
+[^1]:指将这一行前面的#删除
+
+运行命令以配置 `pacman` 所使用的镜像源，`Reflector` 会自动帮我们配置位于 China 的下载速度最快的镜像源
+
+```
+reflector --country China --sort rate --latest 5 --save /etc/pacman.d/mirr
+```
+
+运行下列代码安装必需软件包
+
+```
+pacman -S dialog wpa_supplicant ntfs-3g networkmanager netctl git
+```
+
+#### 设置时区,地区和语言信息
+
+依次执行如下命令设置我们的时区为上海，并生成相关文件
+
+```
+ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
+hwclock --systohc
+```
+
+执行如下命令，设置我们使用的语言选项
+
+```
+vim /etc/locale.gen
+```
+
+在文件中找到 `en_US.UTF-8 UTF-8`、`zh_CN.UTF-8 UTF-8` 、`zh_HK.UTF-8 UTF-8` 及 `zh_TW.UTF-8 UTF-8` 这四行，去掉行首的 # 号，保存并退出。
+
+执行如下命令，系统会生成我们需要的本地化文件
+
+```
+locale-gen
+```
+
+打开（不存在时会创建）`/etc/locale.conf`文件：
+
+```
+vim /etc/locale.conf
+```
+
+在文件的第一行加入以下内容
+
+```
+LANG=en_US.UTF-8
+```
+
+保存并退出
+
+### 设置主机名
+
+打开（不存在时会创建）`/etc/hostname` 文件：
+
+```
+vim /etc/hostname
+```
+
+在文件的第一行输入你自己设定的一个 `myhostname`，这将会是你的 **计算机名**，保存并退出。
+
+打开（不存在时会创建）`/etc/hosts` 文件：
+
+```
+vim /etc/hosts
+```
+
+在文件末添加如下内容（将 `myhostname` 替换成你自己设定的主机名），保存并退出。
+
+```
+127.0.0.1	localhost
+::1		localhost
+127.0.1.1	myhostname.localdomain	myhostname
+```
+
+### 设置 Root 密码
+
+`root` 账户是 `Linux` 系统中的最高权限账户，需要设置密码保护起来，以免无意间实施了破坏性的敏感操作。
+
+```
+passwd
+```
+
+### 新建用户与配置 sudo
+
+> 关于这一步操作的说明，可以查看 [教程](https://www.viseator.com/2017/05/19/arch_setup/#新建用户)
+
+请自行替换 `username` 为你想要使用的用户名
+
+```
+useradd -m -G wheel username
+passwd username
+```
+
+为了在普通用户下使用 root 操作，需要配置 `sudo`
+
+```
+pacman -S sudo
+vim /etc/sudoers
+```
+
+找到 `# %wheel ALL=(ALL:ALL) ALL`，取消注释并保存退出。
+
+### 安装处理器微码
+
+显然你应该根据你电脑的 CPU 型号选取一个包进行安装
+
+```
+pacman -S intel-ucode
+pacman -S amd-ucode
+```
+
+## 配置系统引导
+
+> <b>不要轻易的调整grub,会变得不幸</b>
+
+先安装`grub`的必需包
+
+```
+pacman -S os-prober ntfs-3g grub efibootmgr
+```
+
+使用vim启用os-prober
+
+```
+vim /etc/default/grub
+```
+
+取消注释这一行
+
+```
+# GRUB_DISABLE_OS_PROBER=false
+```
+
+部署`grub`
+
+```
+grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=grub
+```
+
+生成配置文件
+
+```
+grub-mkconfig -o /boot/grub/grub.cfg
+```
+
+检查一下文件末尾的`menuenrtry`是否有Arch Linux入口
+
+```
+vim /boot/grub/grub.cfg
+```
+
+## 创建交换文件
+
+交换文件可以在物理内存不足的时候将部分内存暂存到交换文件中，避免系统由于内存不足而完全停止工作。之前通常采用单独一个分区的方式作为交换分区，现在更推荐采用交换文件的方式，更便于我们的管理。分配一块空间用于交换文件，执行：
+
+```
+dd if=/dev/zero of=/swapfile bs=1M count=8192 status=progress
+```
+
+将 `8192` 换成需要的大小，单位 Mb，一般与计算机 RAM 大小一致即可。
+
+更改权限，执行：
+
+```
+chmod 600 /swapfile
+```
+
+设置交换文件，执行：
+
+```
+mkswap /swapfile
+```
+
+启用交换文件，执行：
+
+```
+swapon /swapfile
+```
+
+最后我们需要编辑 `/etc/fstab` 为交换文件设置一个入口，使用 `Vim` 打开文件：
+
+```
+vim /etc/fstab
+```
+
+**注意编辑 `fstab` 文件的时候要格外注意不要修改之前的内容，直接在最后新起一行加入以下内容**：
+
+```
+/swapfile none swap defaults 0 0
+```
+
+安装图形化界面
+
+安装 Xorg 图形服务
+
+```
+pacman -S xorg
+```
+
+这里选择安装的是`Gnome`,如果有其他需求请自行查找
+
+安装 GNOME
+
+```
+pacman -S gnome gdm
+```
+
+设置 gdm 开机启动
+
+```
+systemctl enable gdm
+```
+
+### 网络服务
+
+启用适用于桌面环境的网络服务 `NetworkManager`
+
+```
+systemctl disable netctl
+systemctl enable NetworkManager
+```
+
+`reboot`之后就可以进入图形界面了
+
+## 安装后配置与提示
+
+### 社区支持
+
+Arch Linux 有完善的 Wiki 与活跃的社区支持，有任何问题先在 Wiki 内查找以及 Google 一下， 绝大部分问题都会找到解决方案
+
+### 滚动更新
+
+在使用之前，要了解 Arch Linux 使用的是激进的滚动更新策略，你的系统可以时刻保持并且也 **必须保持** 最新的内核版本与最新的软件版本。
+
+因此在你安装软件包的时候，`pacman` 的命令应当从简单的 *安装* 变为 **安装软件包+同步软件资料库+进行全面系统更新**，也就是说：
+
+```
+sudo pacman -S package-name
+```
+
+应当改为
+
+```
+sudo pacman -Syu package-name
+```
+
+### 代理配置
+
+如果你使用 clash 进行国际联网，可以直接下载方便使用的 [Clash for Windows](https://github.com/Fndroid/clash_for_windows_pkg)，解压后打开 `cfw` 即可
+
+若提示依赖缺失，可以安装 gtk3，[参考](https://aur.archlinux.org/packages/clash-for-windows-bin)
+
+```
+sudo pacman -Syu gtk3
+```
+
+- 在 `System Settings` 中搜索 `proxy`，手动将代理地址设置为 `127.0.0.1`，cfw 默认端口为 `7890`
+
+- 设置 `Git` 代理：
+
+  ```
+  git config --global http.proxy "http://127.0.0.1:7890"
+  ```
+
+- 设置终端代理：将 cfw 中的命令手动粘贴到终端中回车，但只在本次对话中生效
+
+  ```
+  export https_proxy=http://127.0.0.1:7890;
+  export http_proxy=http://127.0.0.1:7890;
+  export all_proxy=socks5://127.0.0.1:7890
+  ```
+
+### AUR helper: yay
+
+Arch Linux 除了官方源之外，还拥有广大社区用户维护的 **Arch 用户软件仓库**（Arch User Repository，简称 AUR）可供使用，极大丰富了 Arch Linux 的软件库，用户体验++
+
+安装可以让我们便捷安装 AUR 包的 `yay`
+
+```
+pacman -S --needed git base-devel
+git clone https://aur.archlinux.org/yay.git
+cd yay
+makepkg -si
+```
+
+### Code - OSS or VS Code
+
+前者开源，后者是微软基于开源项目二次开发的软件，可以类比 Chromium 与 Google Chrome
+
+安装 Code - OSS
+
+```
+sudo pacman -Syu code
+```
+
+或者 Visual Studio Code
+
+```
+yay -Syu visual-studio-code-bin
+```
+
+装好之后可以用 code 代替 nano 或 vim 等命令行编辑器进行文本编辑
+
+可以修改 git 的默认编辑器为 code
+
+```
+git config --global core.editor "code --wait"
+```
+
+### zsh 与 oh-my-zsh
+
+zsh 比系统默认搭载的 bash 更好用，搭配上社区支持的项目 [oh-my-zsh](https://ohmyz.sh/)，插件和主题都很齐全
+
+```
+yay -Syu zsh
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+```
+
+- 切换默认 shell 为 zsh
+
+```
+sudo chsh -s /bin/zsh username
+```
+
+reboot 后再次打开终端，或直接运行 zsh，就能看到带颜色的默认 robbyrussell 主题 zsh 了
+
+- 编辑 `~/.zshrc`，找到 plugins 行，加入我推荐的几个插件
+
+```
+code ~/.zshrc
+plugins=(git z sudo zsh-syntax-highlighting zsh-autosuggestions)
+```
+
+其中 [zsh-syntax-highlighting](https://github.com/zsh-users/zsh-syntax-highlighting/blob/master/INSTALL.md#oh-my-zsh) 与 [zsh-autosuggestions](https://github.com/zsh-users/zsh-autosuggestions/blob/master/INSTALL.md#oh-my-zsh) 需要自行安装，或者可以看这个 [gist](https://gist.github.com/dogrocker/1efb8fd9427779c827058f873b94df95)
+
+接着在 `.zshrc` 中粘贴上文代理中的三行终端命令，zsh 每次启动都会读取 `.zshrc` 初始化，即可自动化配置终端代理
+
+### Git
+
+随手配配能用就行
+
+- 代理和配置编辑器在前面提到了
+- [git-credential-manager](https://github.com/GitCredentialManager/git-credential-manager)：AUR 下一个，存 GitHub HTTPS 密钥用
+- 给 commit 整一下 [GPG 签名](https://docs.github.com/en/authentication/managing-commit-signature-verification/about-commit-signature-verification)
+
+### 中文字体与中文输入法
+
+在系统语言设置内加入中文，安装中文字体与中文输入法后重启即可
+
+```
+yay -Syu noto-fonts-cjk noto-fonts-emoji
+```
+
+可以使用 fcitx4 的搜狗输入法，或在 fcitx5 的拼音输入法中导入搜狗词库，参照 [fcitx](https://wiki.archlinux.org/title/fcitx#Chinese) 与 [fcitx5](https://wiki.archlinux.org/title/fcitx5#Chinese)
+
+安装 fcitx5 及组件，在设置中添加输入法即可，具体参照 Arch Wiki
+
+```
+yay -Syu fcitx5-im fcitx5-chinese-addons fcitx5-qt fcitx5-gtk
+```
+
+修改 `/etc/environment` 文件，在文件开头加入五行：
+
+```
+GTK_IM_MODULE=fcitx
+QT_IM_MODULE=fcitx
+XMODIFIERS=@im=fcitx
+INPUT_METHOD=fcitx
+SDL_IM_MODULE=fcitx
+GLFW_IM_MODULE=ibus
+```
+
+可以解决一些软件无法调出 `fcitx` 的问题
+
+### 蓝牙配置
+
+参照 [Arch wiki](https://wiki.archlinux.org/title/Bluetooth#Installation)
+
+```
+yay -Syu bluez bluez-utils blueman
+systemctl start bluetooth.service && systemctl enable bluetooth.service
+```
+
+### 浏览器
+
+安装谷歌,edge，~~Edge为什么是神~~
+
+```
+yay -Syu google-chrome
+yay -Syu microsoft-edge-dev-bin
+yay -Syu chromium
+```
+
+### QQ 和微信
+
+使用 `yay`安装 `AUR` 包即可
+
+linuxqq
+
+[deepin-wine-wechat](https://github.com/vufa/deepin-wine-wechat-arch)
