@@ -19,7 +19,7 @@
 
 1. 大于100G的硬盘空余空间
 2. 一块储存空间至少为4G的U盘
-3. 稳定，而不需要额外进行设备认证的有线/无线网络连接，如手机热点等。
+3. 稳定，而不需要额外进行设备认证的有线/无线网络连接，如手机热点等。~~(校园网无感认证似乎也可以)~~
 4. 至少三小时左右的时间乃至数星期的空余时间
 5. 强大的心理素质
 6. ~~找大佬带~~
@@ -28,8 +28,17 @@
 
 > 默认你使用的windows系统，如果你是Mac系统请自行搜索教程
 
-1. 下载最新的arch Linux系统镜像，在<a href="https://archlinux.org/download/">这里</a>找到China的镜像源，如`tuna.tsinghua.edu.cn`下载`iso`镜像文件。
-2. 下载
+1. 下载最新的`Arch Linux`系统镜像，在<a href="https://archlinux.org/download/">下载地址</a>找到China的镜像源，如`tuna.tsinghua.edu.cn`下载`iso`镜像文件。
+
+   ![image-20230509163519705](https://typora-1318125061.cos.ap-nanjing.myqcloud.com/typora/202305091635953.png)
+
+2. 下载ventoy(一款U盘安装软件)
+
+3. 打开后选择U盘安装
+
+   ![image-20230509163344927](https://typora-1318125061.cos.ap-nanjing.myqcloud.com/typora/202305091633330.png)
+
+4. 将`iso`文件复制到U盘中
 
 ## 磁盘分区
 
@@ -37,15 +46,13 @@
 
 - 在windows下空出一块分区进行安装，使用Windows自带的管理工具即可
 
-1. 右键windows图标，在菜单中选择磁盘管理（此处默认为win11）
+1. 右键windows图标，在菜单中选择磁盘管理（此处默认为`win11`）
 
    ![](https://typora-1318125061.cos.ap-nanjing.myqcloud.com/typora/202305062320115.png)
 
 2. 右击想要删除的分区，选择删除卷（注意提前备份其中的有用数据）
 
-- 空闲的磁盘（新磁盘）：无需进行任何操作。
-
-
+> 空闲的磁盘（新磁盘）：无需进行任何操作。
 
 不要在这里进行创建新分区的操作，进入Linux安装界面后会通过命令行完成
 
@@ -63,6 +70,8 @@
 ## 开始安装Arch Linux
 
 在完成以上设置之后，重启电脑，我们会进入Arch Linux的页面，选择第一个进入安装程序。加载完成进入命令行界面，恭喜你，希望接下来你预留了足够的时间在命令行界面折腾。
+
+![image-20230509163551405](https://typora-1318125061.cos.ap-nanjing.myqcloud.com/typora/202305091636546.png)
 
 > 接下来的你将正式接触命令行页面，其中可能会有各种各样的bug。同样饱受debug之苦，我会尽可能的诠释每一步的原理方便随时debug。
 
@@ -137,7 +146,9 @@ station wlan0 get-networks
 
 最后输入下列命令连接指定网络，然后输入密码
 
-> `Wifi-SSID`请替换为你想要连接的网络
+> `Wifi-SSID`请替换为你想要连接的网络,如果有空格请用引号如"wifi ssid"
+>
+>  `wifi`名称请不要带中文
 >
 > 在命令行页面密码不会显示请注意
 
@@ -169,6 +180,8 @@ timedatectl set-ntp true
 fdisk -l
 ```
 
+![image-20230509164005352](https://typora-1318125061.cos.ap-nanjing.myqcloud.com/typora/202305091640521.png)
+
 可以看到这里会显示你的所有硬盘及硬盘，形如`/dev/nvme0n1`（请以自己的设备为准）
 
 - 如果你要在已有硬盘中安装，你会发现在硬盘中（安装windows的硬盘）发现一个类型为`EFI`的分区（请排除U盘中可能存在的`EFI`分区），这是你的引导分区，请记下路径（`/dev/nvme0n1p1`）
@@ -181,7 +194,7 @@ fdisk -l
      fdisk /dev/nvme0n1
      ```
 
-  2. 接下来你进入了`fdisk`的操作环境（可以输入h来查看指南）
+  2. 接下来你进入了`fdisk`的操作环境（可以输入`m`来查看指南）
 
      1. **如果你是一块全新的硬盘**：输入`g`来创建一个全新的gpt分区表，**否则直接进行第2步**。
 
@@ -218,7 +231,7 @@ fdisk /dev/nvme0n1
 4. 输入以下命令格式化刚刚创建的根分区(将nvme0n1p2替换为你创建的根目录)
 
    ```
-   mkfs.ext /dev/nvme0n1p2 
+   mkfs.ext4 /dev/nvme0n1p2 
    ```
 
 ## 挂载分区
@@ -226,7 +239,7 @@ fdisk /dev/nvme0n1
 执行以下命令将根分区挂载到`/mnt`
 
 ```
-mount /dev/nvme0n1p2
+mount /dev/nvme0n1p2 /mnt
 ```
 
 执行以下命令将引导文件挂载到上面
@@ -259,7 +272,7 @@ vim /etc/pacman.d/mirrorlist
 推荐清华和浙大的镜像源
 
 ```
-Server=http://mirrors.tuna.tsinghua.edu.cn/archlinux/$repo/os/$arch
+Server = http://mirrors.tuna.tsinghua.edu.cn/archlinux/$repo/os/$arch
 Server = http://mirrors.zju.edu.cn/archlinux/$repo/os/$arch
 ```
 
@@ -312,11 +325,13 @@ chroot(即change root),相当于进入新安装的linux系统,执行这一步之
 arch-chroot /mnt
 ```
 
+![image-20230509163659325](https://typora-1318125061.cos.ap-nanjing.myqcloud.com/typora/202305091637879.png)
+
 > 顺带一提，如果以后系统出现了问题，只要插入任意一个安装有 Arch Linux 镜像的 U 盘并启动，将我们的系统根分区挂载到 `/mnt` 下、EFI 系统分区挂载到 `/mnt/boot` 下，再通过这条命令就可以进入我们的系统进行修复操作。~~(救不了的话重装最快)~~
 
 #### 开启pacman并行下载
 
-使用vim打开pacman,开启怕pacman的并行下载功能
+使用vim打开pacman,开启怕pacman的并行下载功能(这里退出要强制使用`:wq!`)
 
 ```
 vim /etc/pacman.conf
@@ -327,12 +342,6 @@ vim /etc/pacman.conf
 > 盲目多开并不会提高效率,默认5即可.~~网速够快当我没说~~
 
 [^1]:指将这一行前面的#删除
-
-运行命令以配置 `pacman` 所使用的镜像源，`Reflector` 会自动帮我们配置位于 China 的下载速度最快的镜像源
-
-```
-reflector --country China --sort rate --latest 5 --save /etc/pacman.d/mirr
-```
 
 运行下列代码安装必需软件包
 
@@ -431,7 +440,7 @@ vim /etc/sudoers
 
 ### 安装处理器微码
 
-显然你应该根据你电脑的 CPU 型号选取一个包进行安装
+显然你应该根据你电脑的 CPU 型号选取一个包进行安装(英特尔还是amd)
 
 ```
 pacman -S intel-ucode
@@ -549,7 +558,7 @@ systemctl disable netctl
 systemctl enable NetworkManager
 ```
 
-`reboot`之后就可以进入图形界面了
+然后`exit`退出磁盘,`reboot`之后就可以进入图形界面了
 
 ## 安装后配置与提示
 
