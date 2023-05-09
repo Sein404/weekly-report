@@ -218,7 +218,7 @@ fdisk /dev/nvme0n1
 4. 输入以下命令格式化刚刚创建的根分区(将nvme0n1p2替换为你创建的根目录)
 
    ```
-   mkfs.ext /dev/nvme0n1p2 
+   mkfs.ext4 /dev/nvme0n1p2 
    ```
 
 ## 挂载分区
@@ -226,7 +226,7 @@ fdisk /dev/nvme0n1
 执行以下命令将根分区挂载到`/mnt`
 
 ```
-mount /dev/nvme0n1p2
+mount /dev/nvme0n1p2 /mnt
 ```
 
 执行以下命令将引导文件挂载到上面
@@ -331,7 +331,7 @@ vim /etc/pacman.conf
 运行命令以配置 `pacman` 所使用的镜像源，`Reflector` 会自动帮我们配置位于 China 的下载速度最快的镜像源
 
 ```
-reflector --country China --sort rate --latest 5 --save /etc/pacman.d/mirr
+reflector --country China --sort rate --latest 5 --save /etc/pacman.d/mirrorlist
 ```
 
 运行下列代码安装必需软件包
