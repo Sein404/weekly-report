@@ -343,6 +343,15 @@ vim /etc/pacman.conf
 
 [^1]:指将这一行前面的#删除
 
+<<<<<<< HEAD
+=======
+运行命令以配置 `pacman` 所使用的镜像源，`Reflector` 会自动帮我们配置位于 China 的下载速度最快的镜像源
+
+```
+reflector --country China --sort rate --latest 5 --save /etc/pacman.d/mirrorlist
+```
+
+>>>>>>> 419b8ffef54476b4ea49653569b26d040771ccb3
 运行下列代码安装必需软件包
 
 ```
